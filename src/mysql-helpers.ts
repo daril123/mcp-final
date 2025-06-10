@@ -1,6 +1,213 @@
 import { executeQuery, executeTransaction } from './mysql-client';
 
 // ========================
+// FUNCIONES BÁSICAS DE MYSQL
+// ========================
+
+// Listar todas las tablas
+export async function listTables() {
+  console.error('# Starting listTables function');
+  try {
+    const query = 'SHOW TABLES';
+    console.error('# Executing query:', query);
+    const [rows] = await executeQuery(query);
+    console.error('# Tables retrieved:', rows);
+    return rows;
+  } catch (error: any) {
+    console.error('# ERROR en listTables:', error);
+    throw new Error(`MySQL Error en listTables: ${error.code || 'UNKNOWN'} - ${error.message || 'Sin mensaje'}`);
+  }
+}
+
+// Describir estructura de una tabla
+export async function describeTable(tableName: string) {
+  console.error('# Starting describeTable function:', tableName);
+  try {
+    const query = `DESCRIBE \`${tableName}\``;
+    console.error('# Executing query:', query);
+    const [rows] = await executeQuery(query);
+    console.error('# Table structure retrieved:', rows);
+    return rows;
+  } catch (error: any) {
+    console.error('# ERROR en describeTable:', error);
+    throw new Error(`MySQL Error en describeTable: ${error.code || 'UNKNOWN'} - ${error.message || 'Sin mensaje'}`);
+  }
+}
+
+// Crear tabla
+export async function createTable(tableName: string, columns: string) {
+  console.error('# Starting createTable function:', { tableName, columns });
+  try {
+    const query = `CREATE TABLE \`${tableName}\` (${columns})`;
+    console.error('# Executing query:', query);
+    const [result] = await executeQuery(query);
+    console.error('# Table created successfully:', result);
+    return result;
+  } catch (error: any) {
+    console.error('# ERROR en createTable:', error);
+    throw new Error(`MySQL Error en createTable: ${error.code || 'UNKNOWN'} - ${error.message || 'Sin mensaje'}`);
+  }
+}
+
+// Insertar datos
+export async function insertData(tableName: string, columns: string[], values: any[][]) {
+  console.error('# Starting insertData function:', { tableName, columns, values });
+  try {
+    const columnNames = columns.map(col => `\`${col}\``).join(', ');
+    const placeholders = values.map(() => `(${columns.map(() => '?').join(', ')})`).join(', ');
+    const query = `INSERT INTO \`${tableName}\` (${columnNames}) VALUES ${placeholders}`;
+    
+    // Aplanar el array de valores
+    const flatValues = values.flat();
+    
+    console.error('# Executing query:', query, 'with values:', flatValues);
+    const [result] = await executeQuery(query, flatValues);
+    console.error('# Data inserted successfully:', result);
+    return result;
+  } catch (error: any) {
+    console.error('# ERROR en insertData:', error);
+    throw new Error(`MySQL Error en insertData: ${error.code || 'UNKNOWN'} - ${error.message || 'Sin mensaje'}`);
+  }
+}
+
+// Consultar datos de una tabla
+export async function queryTable(tableName: string, whereClause?: string, limit?: number) {
+  console.error('# Starting queryTable function:', { tableName, whereClause, limit });
+  try {
+    let query = `SELECT * FROM \`${tableName}\``;
+    
+    if (whereClause) {
+      query += ` WHERE ${whereClause}`;
+    }
+    
+    if (limit) {
+      query += ` LIMIT ${limit}`;
+    }
+    
+    console.error('# Executing query:', query);
+    const [rows] = await executeQuery(query);
+    console.error('# Data retrieved:', rows);
+    return rows;
+  } catch (error: any) {
+    console.error('# ERROR en queryTable:', error);
+    throw new Error(`MySQL Error en queryTable: ${error.code || 'UNKNOWN'} - ${error.message || 'Sin mensaje'}`);
+  }
+}
+
+// Agregar clave primaria
+export async function addPrimaryKey(tableName: string, columns: string[]) {
+  console.error('# Starting addPrimaryKey function:', { tableName, columns });
+  try {
+    const columnNames = columns.map(col => `\`${col}\``).join(', ');
+    const query = `ALTER TABLE \`${tableName}\` ADD PRIMARY KEY (${columnNames})`;
+    console.error('# Executing query:', query);
+    const [result] = await executeQuery(query);
+    console.error('# Primary key added successfully:', result);
+    return result;
+  } catch (error: any) {
+    console.error('# ERROR en addPrimaryKey:', error);
+    throw new Error(`MySQL Error en addPrimaryKey: ${error.code || 'UNKNOWN'} - ${error.message || 'Sin mensaje'}`);
+  }
+}
+
+// Agregar clave foránea
+export async function addForeignKey(
+  tableName: string, 
+  columnName: string, 
+  referencedTable: string, 
+  referencedColumn: string, 
+  constraintName?: string
+) {
+  console.error('# Starting addForeignKey function:', { tableName, columnName, referencedTable, referencedColumn, constraintName });
+  try {
+    const constraintNameFinal = constraintName || `fk_${tableName}_${columnName}`;
+    const query = `ALTER TABLE \`${tableName}\` ADD CONSTRAINT \`${constraintNameFinal}\` FOREIGN KEY (\`${columnName}\`) REFERENCES \`${referencedTable}\`(\`${referencedColumn}\`)`;
+    console.error('# Executing query:', query);
+    const [result] = await executeQuery(query);
+    console.error('# Foreign key added successfully:', result);
+    return result;
+  } catch (error: any) {
+    console.error('# ERROR en addForeignKey:', error);
+    throw new Error(`MySQL Error en addForeignKey: ${error.code || 'UNKNOWN'} - ${error.message || 'Sin mensaje'}`);
+  }
+}
+
+// Mostrar claves foráneas
+export async function showForeignKeys(tableName: string) {
+  console.error('# Starting showForeignKeys function:', tableName);
+  try {
+    const query = `
+      SELECT 
+        CONSTRAINT_NAME,
+        COLUMN_NAME,
+        REFERENCED_TABLE_NAME,
+        REFERENCED_COLUMN_NAME
+      FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE 
+      WHERE TABLE_SCHEMA = DATABASE() 
+        AND TABLE_NAME = ? 
+        AND REFERENCED_TABLE_NAME IS NOT NULL
+    `;
+    console.error('# Executing query:', query);
+    const [rows] = await executeQuery(query, [tableName]);
+    console.error('# Foreign keys retrieved:', rows);
+    return rows;
+  } catch (error: any) {
+    console.error('# ERROR en showForeignKeys:', error);
+    throw new Error(`MySQL Error en showForeignKeys: ${error.code || 'UNKNOWN'} - ${error.message || 'Sin mensaje'}`);
+  }
+}
+
+// Eliminar tabla
+export async function dropTable(tableName: string) {
+  console.error('# Starting dropTable function:', tableName);
+  try {
+    const query = `DROP TABLE \`${tableName}\``;
+    console.error('# Executing query:', query);
+    const [result] = await executeQuery(query);
+    console.error('# Table dropped successfully:', result);
+    return result;
+  } catch (error: any) {
+    console.error('# ERROR en dropTable:', error);
+    throw new Error(`MySQL Error en dropTable: ${error.code || 'UNKNOWN'} - ${error.message || 'Sin mensaje'}`);
+  }
+}
+
+// Ejecutar consulta SQL personalizada
+export async function executeCustomQuery(query: string) {
+  console.error('# Starting executeCustomQuery function:', query);
+  try {
+    console.error('# Executing custom query:', query);
+    const [result] = await executeQuery(query);
+    console.error('# Custom query executed successfully:', result);
+    return result;
+  } catch (error: any) {
+    console.error('# ERROR en executeCustomQuery:', error);
+    throw new Error(`MySQL Error en executeCustomQuery: ${error.code || 'UNKNOWN'} - ${error.message || 'Sin mensaje'}`);
+  }
+}
+
+// Contar registros
+export async function countRecords(tableName: string, whereClause?: string) {
+  console.error('# Starting countRecords function:', { tableName, whereClause });
+  try {
+    let query = `SELECT COUNT(*) as count FROM \`${tableName}\``;
+    
+    if (whereClause) {
+      query += ` WHERE ${whereClause}`;
+    }
+    
+    console.error('# Executing query:', query);
+    const [rows] = await executeQuery(query);
+    const count = Array.isArray(rows) && rows.length > 0 ? (rows[0] as any).count : 0;
+    console.error('# Record count retrieved:', count);
+    return count;
+  } catch (error: any) {
+    console.error('# ERROR en countRecords:', error);
+    throw new Error(`MySQL Error en countRecords: ${error.code || 'UNKNOWN'} - ${error.message || 'Sin mensaje'}`);
+  }
+}
+
+// ========================
 // GESTIÓN DE ÍNDICES
 // ========================
 
