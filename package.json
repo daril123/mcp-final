@@ -1,12 +1,13 @@
 {
-  "name": "daril123-mysql-database-list",
+  "name": "daril123-mysql-database-server",
   "version": "1.0.0",
   "license": "MIT",
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc && chmod +x dist/index.js",
     "build:windows": "tsc", 
-    "start": "node dist/index.js"
+    "start": "node dist/index.js",
+    "dev": "ts-node src/index.ts"
   },
   "files": [
     "dist"
@@ -15,19 +16,20 @@
     "access": "public"
   },
   "bin": {
-    "mysql-database-list": "./dist/index.js"
+    "mysql-database-server": "./dist/index.js"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/daril123/mysql-database-list.git"
+    "url": "https://github.com/daril123/mysql-database-server.git"
   },
-  "keywords": ["mysql", "mcp", "claude", "database", "n8n"],
+  "keywords": ["mysql", "mcp", "claude", "database", "n8n", "model-context-protocol"],
   "author": "daril123",
-  "description": "MySQL Database List MCP Server",
+  "description": "MySQL Database MCP Server - Complete MySQL integration for Claude MCP",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.7.0",
     "mysql2": "^3.6.5",
-    "dotenv": "^16.4.7"
+    "dotenv": "^16.4.7",
+    "zod": "^3.24.2"
   },
   "devDependencies": {
     "@types/node": "^22.13.13",

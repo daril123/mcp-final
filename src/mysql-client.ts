@@ -1,37 +1,23 @@
-import mysql from 'mysql2/promise';
-import dotenv from 'dotenv';
+const mysql = require('mysql2/promise');
+const dotenv = require('dotenv');
 
-// Solo cargar .env si existe en el directorio actual (desarrollo local)
-try {
-  dotenv.config();
-} catch (error) {
-  console.error('# .env file not found, using environment variables from system');
-}
+// Cargar variables de entorno
+dotenv.config();
 
 const requiredEnvVars = ['MYSQL_HOST', 'MYSQL_USER', 'MYSQL_PASSWORD'];
 for (const envVar of requiredEnvVars) {
   if (!process.env[envVar]) {
-    throw new Error(`Required environment variable ${envVar} is not set. When using NPX, make sure to set these in your environment.`);
+    throw new Error(`Required environment variable ${envVar} is not set.`);
   }
 }
 
 console.error('# Starting MySQL client configuration');
 
-let pool: mysql.Pool | null = null;
+let pool = null;
 
-export const getMysqlConnection = async (): Promise<mysql.PoolConnection> => {
+const getMysqlConnection = async () => {
   if (!pool) {
-    console.error('# Creating new MySQL connection pool with config:', {
-      host: process.env.MYSQL_HOST,
-      port: process.env.MYSQL_PORT,
-      user: process.env.MYSQL_USER,
-      database: process.env.MYSQL_DATABASE || 'information_schema',
-      // No mostrar password por seguridad
-    });
-
-    const sslConfig = process.env.MYSQL_SSL === 'true' ? {
-      rejectUnauthorized: false
-    } : undefined;
+    console.error('# Creating new MySQL connection pool');
 
     pool = mysql.createPool({
       host: process.env.MYSQL_HOST || 'localhost',
@@ -41,7 +27,8 @@ export const getMysqlConnection = async (): Promise<mysql.PoolConnection> => {
       database: process.env.MYSQL_DATABASE || 'information_schema',
       charset: 'utf8mb4',
       connectionLimit: 10,
-      ssl: sslConfig,
+      acquireTimeout: 60000,
+      timeout: 60000,
     });
 
     console.error('# MySQL connection pool created successfully');
@@ -50,33 +37,51 @@ export const getMysqlConnection = async (): Promise<mysql.PoolConnection> => {
   return pool.getConnection();
 };
 
-export const closeMysqlConnection = async (): Promise<void> => {
+const closeMysqlConnection = async () => {
   if (pool) {
+    console.error('# Closing MySQL connection pool...');
     await pool.end();
     pool = null;
     console.error('# MySQL connection pool closed');
   }
 };
 
-// Función auxiliar para ejecutar consultas con manejo automático de conexiones
-export const executeQuery = async <T = any>(
-  query: string, 
-  params?: any[]
-): Promise<[T, mysql.FieldPacket[]]> => {
-  const connection = await getMysqlConnection();
+const executeQuery = async (query, params) => {
+  let connection = null;
   try {
-    const result = await connection.execute(query, params) as [T, mysql.FieldPacket[]];
+    connection = await getMysqlConnection();
+    console.error(`# Executing query: ${query.substring(0, 100)}${query.length > 100 ? '...' : ''}`);
+    
+    const result = await connection.execute(query, params);
+    console.error(`# Query executed successfully`);
+    
     return result;
+  } catch (error) {
+    console.error('# Query execution error:', error.message);
+    throw error;
   } finally {
-    connection.release();
+    if (connection) {
+      connection.release();
+    }
   }
 };
 
-console.error('# MySQL client configuration completed:', {
-  host: process.env.MYSQL_HOST || 'localhost',
-  port: process.env.MYSQL_PORT || '3306',
-  user: process.env.MYSQL_USER ? 'set' : 'not set',
-  password: process.env.MYSQL_PASSWORD ? 'set' : 'not set',
-  database: process.env.MYSQL_DATABASE || 'information_schema (default)',
-  ssl: process.env.MYSQL_SSL === 'true' ? 'enabled' : 'disabled',
-});
+const testConnection = async () => {
+  try {
+    const [result] = await executeQuery('SELECT 1 as test');
+    console.error('# MySQL connection test successful');
+    return true;
+  } catch (error) {
+    console.error('# MySQL connection test failed:', error.message);
+    return false;
+  }
+};
+
+console.error('# MySQL client configuration completed');
+
+module.exports = {
+  getMysqlConnection,
+  closeMysqlConnection,
+  executeQuery,
+  testConnection
+};
