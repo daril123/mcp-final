@@ -1,37 +1,60 @@
 {
   "name": "daril123-mysql-mcp-server",
-  "version": "1.0.0",
-  "description": "MySQL MCP Server - Manage MySQL databases through Claude",
+  "version": "1.2.0",
+  "description": "MySQL MCP Server - Manage MySQL databases through Claude with natural language",
   "license": "MIT",
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
     "build:unix": "tsc && chmod +x dist/index.js",
     "start": "node dist/index.js",
-    "prepublishOnly": "npm run build"
+    "dev": "ts-node src/index.ts",
+    "setup": "node setup.js",
+    "clean": "rm -rf dist",
+    "typecheck": "tsc --noEmit",
+    "lint": "echo 'Linting not configured yet'",
+    "test": "echo 'Tests not configured yet'",
+    "prepublishOnly": "npm run clean && npm run build",
+    "postinstall": "echo 'Run npm run setup to configure your MySQL connection'"
   },
   "bin": {
     "daril123-mysql-mcp-server": "./dist/index.js"
   },
   "files": [
     "dist/**/*",
+    "setup.js",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    ".env.example"
   ],
   "keywords": [
     "mysql",
     "mcp",
     "claude",
     "database",
-    "model-context-protocol"
+    "model-context-protocol",
+    "ai",
+    "sql",
+    "database-management",
+    "anthropic"
   ],
-  "author": "daril123",
+  "author": {
+    "name": "daril123",
+    "url": "https://github.com/daril123"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/daril123/mysql-mcp-server.git"
   },
+  "bugs": {
+    "url": "https://github.com/daril123/mysql-mcp-server/issues"
+  },
+  "homepage": "https://github.com/daril123/mysql-mcp-server#readme",
   "publishConfig": {
     "access": "public"
+  },
+  "engines": {
+    "node": ">=16.0.0"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.7.0",
@@ -43,5 +66,12 @@
     "@types/node": "^22.13.13",
     "ts-node": "^10.9.2",
     "typescript": "^5.8.2"
+  },
+  "peerDependencies": {
+    "typescript": ">=4.5.0"
+  },
+  "funding": {
+    "type": "github",
+    "url": "https://github.com/sponsors/daril123"
   }
 }
